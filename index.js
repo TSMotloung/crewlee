@@ -1,63 +1,32 @@
-const express = require('express');
-const { CheerioCrawler } = require('crawlee');
+const express = require("express");
+const { CheerioCrawler } = require("crawlee");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Dynamic endpoint: pass ?url=<website-url> to scrape
-app.get('/products', async (req, res) => {
-    const url = req.query.url;
-    if (!url) return res.status(400).send({ error: 'No URL provided' });
-
-    const results = [];
-
-    const crawler = new CheerioCrawler({
-        async requestHandler({ $, request }) {
-            // Default selectors — can override per domain
-            let productSelector = '.product-item';
-            let nameSelector = '.product-title';
-            let priceSelector = '.price';
-            let stockSelector = '.sold-out';
-
-            // Domain-specific overrides (example: PerfumeLand)
-            if (url.includes('perfumeland.co.za')) {
-                productSelector = '.product-item';
-                nameSelector = '.product-title';
-                priceSelector = '.price';
-                stockSelector = '.sold-out';
-            }
-
-            $(productSelector).each((i, el) => {
-                results.push({
-                    name: $(el).find(nameSelector).text().trim(),
-                    price: $(el).find(priceSelector).text().trim(),
-                    stock: $(el).find(stockSelector).length > 0 ? 'Out of Stock' : 'In Stock',
-                    url: url.replace(/\/$/, '') + $(el).find('a').attr('href'),
-                });
-            });
-        },
-    });
-
-    try {
-        await crawler.run([url]);
-        res.json(results);
-    } catch (err) {
-        res.status(500).send({ error: err.message });
-    }
+// Simple route
+app.get("/", (req, res) => {
+  res.send("Crawlee app running on Railway!");
 });
 
-app.listen(PORT, () => console.log(`Dynamic scraper running on port ${PORT}`));
+// Example scraping route
+app.get("/scrape", async (req, res) => {
+  let results = [];
 
-const express = require("express");
-const app = express();
+  const crawler = new CheerioCrawler({
+    async requestHandler({ $, request }) {
+      results.push({
+        title: $("title").text(),
+        url: request.url
+      });
+    },
+  });
 
-const PORT = process.env.PORT || 3000;
+  await crawler.run(["https://example.com"]);
 
-app.get("/", (req, res) => {
-  res.send("Hello from Crawlee on Railway!");
+  res.json(results);
 });
 
 app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`✅ Server running on port ${PORT}`);
 });
-
